@@ -38,6 +38,7 @@ module pl_control (
 );
 
     localparam R_TYPE = 7'b0110011;
+    localparam I_TYPE = 7'b0010011; 
     localparam LOAD   = 7'b0000011;
     localparam STORE  = 7'b0100011;
     localparam BRANCH = 7'b1100011;
