@@ -1,0 +1,16 @@
+lw x1,0(x0)
+lw x2,4(x0)
+lw x3,8(x0)
+lw x4,12(x0)
+xor x5,x1,x2
+sll x6,x1,x4
+srl x7,x3,x4
+sra x8,x3,x4
+sltu x9,x1,x3
+sltu x10,x3,x1
+slt x11,x3,x1
+xor x12,x5,x6
+sll x13,x1,x2
+sw x5,16(x0)
+sw x8,20(x0)
+beq x0,x0,0
