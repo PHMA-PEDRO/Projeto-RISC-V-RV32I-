@@ -74,6 +74,12 @@ module pl_control (
                 Branch   = 1'b1;
                 ALUOp    = 2'b01;
             end
+            I_TYPE: begin
+                ALUSrc   = 1'b1;
+                MemtoReg = 1'b0;
+                RegWrite = 1'b1;
+                ALUOp    = 2'b11;
+            end
             default: ; // sinais permanecem em zero (seguro)
         endcase
     end
