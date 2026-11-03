@@ -6,7 +6,7 @@
 // que serao propagados pelos registradores de pipeline.
 //
 // Instrucoes suportadas:
-//   R-type  (0110011): add, and
+//   R-type  (0110011): add, sub, xor, or, and, sll, srl, sra, slt, sltu
 //   I-type  (0000011): lw
 //   S-type  (0100011): sw
 //   B-type  (1100011): beq

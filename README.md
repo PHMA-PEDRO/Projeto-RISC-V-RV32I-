@@ -16,19 +16,24 @@ Processador RISC-V de 32 bits com pipeline de 5 estágios implementado em System
 | 6 | `LW`      | I    | 0000011 | ✅ |
 | 7 | `SW`      | S    | 0100011 | ✅ |
 | 8 | `BEQ`     | B    | 1100011 | ✅ |
+| 9 | `XOR`     | R    | 0110011 | ✅ |
+| 10 | `SLL`    | R    | 0110011 | ✅ |
+| 11 | `SRL`    | R    | 0110011 | ✅ |
+| 12 | `SRA`    | R    | 0110011 | ✅ |
+| 13 | `SLTU`   | R    | 0110011 | ✅ |
 
 ### Resumo de cobertura do ISA RV32I
 
 | Categoria          | Total ISA | Implementadas | Faltando |
 |--------------------|:---------:|:-------------:|:--------:|
-| R-type             | 10        | 5             | 5        |
+| R-type             | 10        | 10            | 0        |
 | I-type aritmético  | 9         | 0             | 9        |
 | I-type load        | 5         | 1 (LW)        | 4        |
 | S-type             | 3         | 1 (SW)        | 2        |
 | B-type             | 6         | 1 (BEQ)       | 5        |
 | U-type             | 2         | 0             | 2        |
 | J-type             | 2         | 0             | 2        |
-| **Total**          | **37**    | **8**         | **29**   |
+| **Total**          | **37**    | **13**        | **24**   |
 
 ### Instruções a implementar — Etapa 01
 
@@ -36,11 +41,11 @@ Processador RISC-V de 32 bits com pipeline de 5 estágios implementado em System
 
 | # | Instrução | Tipo | Opcode  | Status |
 |---|-----------|------|---------|:------:|
-| 1 | `XOR`     | R    | 0110011 | ❌ |
-| 2 | `SLL`     | R    | 0110011 | ❌ |
-| 3 | `SRL`     | R    | 0110011 | ❌ |
-| 4 | `SRA`     | R    | 0110011 | ❌ |
-| 5 | `SLTU`    | R    | 0110011 | ❌ |
+| 1 | `XOR`     | R    | 0110011 | ✅ |
+| 2 | `SLL`     | R    | 0110011 | ✅ |
+| 3 | `SRL`     | R    | 0110011 | ✅ |
+| 4 | `SRA`     | R    | 0110011 | ✅ |
+| 5 | `SLTU`    | R    | 0110011 | ✅ |
 
 #### Aritmética, lógica e deslocamentos com imediatos (I-type)
 
@@ -147,11 +152,29 @@ Seleção: `alu_result[10] = 1` redireciona o acesso ao controlador MMIO (`pl_mm
 
 | Operation | Instrução |
 |-----------|-----------|
-| `4'd01` ADD | LW, SW, ADD |
-| `4'd02` SUB | BEQ (comparação) |
-| `4'd04` OR  | OR |
-| `4'd05` AND | AND |
-| `4'd11` SLT | SLT |
+| `4'd01` ADD  | LW, SW, ADD |
+| `4'd02` SUB  | SUB, BEQ (comparação) |
+| `4'd03` XOR  | XOR |
+| `4'd04` OR   | OR |
+| `4'd05` AND  | AND |
+| `4'd06` SLL  | SLL (shamt = `rs2[4:0]`) |
+| `4'd07` SRL  | SRL (shamt = `rs2[4:0]`) |
+| `4'd08` SRA  | SRA (shamt = `rs2[4:0]`, preserva sinal) |
+| `4'd11` SLT  | SLT (com sinal) |
+| `4'd12` SLTU | SLTU (sem sinal) |
+
+Decodificação R-type em `pl_alu_ctrl.sv` (`ALUOp = 2'b10`):
+
+| funct3 | funct7\[5\] = 0 | funct7\[5\] = 1 |
+|:------:|:----:|:----:|
+| `000`  | ADD  | SUB |
+| `001`  | SLL  | — |
+| `010`  | SLT  | — |
+| `011`  | SLTU | — |
+| `100`  | XOR  | — |
+| `101`  | SRL  | SRA |
+| `110`  | OR   | — |
+| `111`  | AND  | — |
 
 ---
 
@@ -178,6 +201,9 @@ rv32i_pipelined_base_project/
 │   ├── pl_datapath.sv          Datapath 5 estágios
 │   ├── pl_cpu_tb.sv            Testbench de verificação
 │   └── pll_10mhz.v             PLL Altera (50 MHz → 10 MHz)
+│
+├── tests/
+│   └── etapa01/                Teste R-type (XOR, SLL, SRL, SRA, SLTU)
 │
 ├── mifs/                       Arquivos de inicialização de memória
 │   ├── instruction.mif         Programa de teste padrão
@@ -238,6 +264,34 @@ O testbench detecta o halt automaticamente (repetição periódica do PC causada
 ```
 
 Estado final esperado: `x1=10  x2=20  x3=30  x4=10  x5=10  x6=30  x7=30  x8=20  dmem[2]=30`
+
+### Teste da Etapa 01 (R-type)
+
+Arquivos em `tests/etapa01/`: `rtype.asm` (fonte), `program.hex`, `data.hex` e `golden.txt`.
+Para rodar, copie `program.hex`, `data.hex` e `golden.txt` de `tests/etapa01/` para `modelsim/` e simule normalmente.
+
+Dados iniciais: `dmem[0]=10  dmem[1]=20  dmem[2]=0xFFFFFFF0 (-16)  dmem[3]=4`
+
+```
+000: lw   x1,  0(x0)    x1  = 0x0000000A
+001: lw   x2,  4(x0)    x2  = 0x00000014
+002: lw   x3,  8(x0)    x3  = 0xFFFFFFF0  (-16)
+003: lw   x4, 12(x0)    x4  = 0x00000004
+004: xor  x5, x1, x2    x5  = 0x0000001E
+005: sll  x6, x1, x4    x6  = 0x000000A0  -- forwarding MEM/WB->EX (x4)
+006: srl  x7, x3, x4    x7  = 0x0FFFFFFF  (preenche com zeros)
+007: sra  x8, x3, x4    x8  = 0xFFFFFFFF  (preenche com sinal)
+008: sltu x9, x1, x3    x9  = 1           (10 < 0xFFFFFFF0 sem sinal)
+009: sltu x10,x3, x1    x10 = 0
+00A: slt  x11,x3, x1    x11 = 1           (-16 < 10 com sinal)
+00B: xor  x12,x5, x6    x12 = 0x000000BE
+00C: sll  x13,x1, x2    x13 = 0x00A00000  (shamt = 20)
+00D: sw   x5, 16(x0)    dmem[4] = 0x0000001E
+00E: sw   x8, 20(x0)    dmem[5] = 0xFFFFFFFF
+00F: beq  x0, x0, 0     halt
+```
+
+O programa padrão (`modelsim/`) continua passando como teste de regressão.
 
 ---
 
@@ -376,5 +430,3 @@ python3 serial_dump.py COM3                    # captura o resultado
 - [RISC-V ISA Reference (msyksphinz)](https://msyksphinz-self.github.io/riscv-isadoc/html/rvi.html)
 - [RISC-V Interpreter — Cornell University](https://www.cs.cornell.edu/courses/cs3410/2019sp/riscv/interpreter/)
 - Patterson & Hennessy, *Computer Organization and Design: RISC-V Edition*, seções 4.6 – 4.10
-#   P r o j e t o - R I S C - V - R V 3 2 I -  
- 
