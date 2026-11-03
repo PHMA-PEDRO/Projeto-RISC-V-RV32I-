@@ -43,6 +43,27 @@ module pl_alu_ctrl (
                 endcase
             end
 
+            2'b11: begin              // I-type aritmetico/logico
+                case (Funct3)
+
+                    3'h0: Operation = 4'd01; // ADDI
+                    3'h7: Operation = 4'd05; // ANDI
+                    3'h6: Operation = 4'd04; // ORI
+                    3'h2: Operation = 4'd11; // SLTI
+                    3'h1: Operation = 4'd07; // SLLI
+
+                    3'h5: begin
+                        if (Funct7[5])
+                            Operation = 4'd09; // SRAI
+                        else
+                            Operation = 4'd08; // SRLI
+                    end
+
+                    default: Operation = 4'd01;
+
+                endcase
+            end
+
             default: Operation = 4'd01;
         endcase
     end
