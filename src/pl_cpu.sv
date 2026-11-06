@@ -4,7 +4,7 @@
 //
 // Instancia:
 //   pl_control  : unidade de controle principal (estagio ID)
-//   pl_alu_ctrl : unidade de controle da ALU    (estagio EX)
+//   pl_alu_ctrl : unidade de controle da ALU (estagio EX)
 //   pl_datapath : datapath de 5 estagios
 //
 // O pl_control decodifica o opcode do estagio ID; os sinais de controle
@@ -19,9 +19,9 @@
 
 module pl_cpu (
     input  logic        clk,
-    input  logic        rst_n,        // reset ativo-baixo assincrono
+    input  logic        rst_n,
 
-    output logic [31:0] PC,           // PC atual (observabilidade)
+    output logic [31:0] PC,
 
     // E/S Mapeada em Memoria -- DE2-115
     input  logic [17:0] SW,
@@ -45,7 +45,9 @@ module pl_cpu (
     // -------------------------------------------------------------------------
     logic [6:0] opcode;
 
-    logic       ALUSrc, MemtoReg, RegWrite, MemRead, MemWrite, Branch;
+    logic ALUSrc, MemtoReg, RegWrite, MemRead, MemWrite, Branch;
+    logic IsLUI, IsAUIPC;
+
     logic [1:0] ALUOp;
 
     logic [2:0] funct3_ex;
@@ -64,7 +66,9 @@ module pl_cpu (
         .MemRead  (MemRead),
         .MemWrite (MemWrite),
         .Branch   (Branch),
-        .ALUOp    (ALUOp)
+        .ALUOp    (ALUOp),
+        .IsLUI    (IsLUI),
+        .IsAUIPC  (IsAUIPC)
     );
 
     // -------------------------------------------------------------------------
@@ -83,6 +87,7 @@ module pl_cpu (
     pl_datapath datapath (
         .clk          (clk),
         .rst_n        (rst_n),
+
         .ALUSrc       (ALUSrc),
         .MemtoReg     (MemtoReg),
         .RegWrite     (RegWrite),
@@ -90,18 +95,26 @@ module pl_cpu (
         .MemWrite     (MemWrite),
         .Branch       (Branch),
         .ALUOp        (ALUOp),
+
+        .IsLUI        (IsLUI),
+        .IsAUIPC      (IsAUIPC),
+
         .ALU_CC       (alu_cc),
+
         .Opcode       (opcode),
         .Funct3_EX    (funct3_ex),
         .Funct7_EX    (funct7_ex),
         .ALUOp_EX     (aluop_ex),
+
         .PC           (PC),
+
         .SW           (SW),
         .KEY          (KEY_IO),
         .LEDR         (LEDR),
         .LEDG         (LEDG),
         .UART_TXD     (UART_TXD),
         .UART_RXD     (UART_RXD),
+
         .wb_reg_write (wb_reg_write),
         .wb_reg_dst   (wb_reg_dst),
         .wb_reg_data  (wb_reg_data),
