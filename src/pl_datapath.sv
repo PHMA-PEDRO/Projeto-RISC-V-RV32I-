@@ -29,8 +29,17 @@ module pl_dmem (
 
         case (funct3)
             3'b000: byte_enable = 4'b0001 << addr_offset; // SB
-            3'b001: byte_enable = addr_offset[1] ? 4'b1100 : 4'b0011; // SH
-            3'b010: byte_enable = 4'b1111; // SW
+
+            3'b001: begin
+                if (addr_offset[0] == 1'b0)
+                    byte_enable = 4'b0011 << addr_offset; // SH
+            end
+
+            3'b010: begin
+                if (addr_offset == 2'b00)
+                    byte_enable = 4'b1111; // SW
+            end
+
             default: byte_enable = 4'b0000;
         endcase
     end
