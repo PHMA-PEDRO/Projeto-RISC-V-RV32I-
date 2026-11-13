@@ -3,16 +3,16 @@
 // Unidade Logica e Aritmetica de 32 bits -- RV32I pipelined
 //
 // Codificacao de operacao (Operation[3:0]):
-//   4'd01 : ADD  -- adicao com sinal
-//   4'd02 : SUB  -- subtracao com sinal  (BEQ usa Zero)
-//   4'd03 : XOR  -- OU exclusivo bit a bit
-//   4'd04 : OR   -- OU bit a bit
-//   4'd05 : AND  -- E bit a bit
-//   4'd06 : SLL  -- deslocamento logico a esquerda  (shamt = SrcB[4:0])
-//   4'd07 : SRL  -- deslocamento logico a direita   (shamt = SrcB[4:0])
-//   4'd08 : SRA  -- deslocamento aritmetico a direita (shamt = SrcB[4:0])
-//   4'd11 : SLT  -- set-less-than com sinal
-//   4'd12 : SLTU -- set-less-than sem sinal
+//   4'd01 : ADD
+//   4'd02 : SUB
+//   4'd04 : OR
+//   4'd05 : AND
+//   4'd06 : XOR
+//   4'd07 : SLL
+//   4'd08 : SRL
+//   4'd09 : SRA
+//   4'd11 : SLT
+//   4'd12 : SLTU
 // =============================================================================
 
 `timescale 1ns / 1ps
@@ -27,19 +27,29 @@ module pl_alu (
 
     always_comb begin
         case (Operation)
-            4'd01:   ALUResult = $signed(SrcA) + $signed(SrcB);
-            4'd02:   ALUResult = $signed(SrcA) - $signed(SrcB);
-            4'd04:   ALUResult = SrcA | SrcB;
-            4'd05:   ALUResult = SrcA & SrcB;
 
-            // New functions for I-type
-            4'd03:   ALUResult = SrcA ^ SrcB;                        // XOR
-            4'd06:   ALUResult = SrcA << SrcB[4:0];                  // SLL
-            4'd07:   ALUResult = SrcA >> SrcB[4:0];                  // SRL
-            4'd08:   ALUResult = $signed(SrcA) >>> SrcB[4:0];        // SRA
-            4'd11:   ALUResult = 32'($signed(SrcA) < $signed(SrcB)); // SLT
-            4'd12:   ALUResult = 32'(SrcA < SrcB);                   // SLTU
+            4'd01: ALUResult = SrcA + SrcB; // ADD
+
+            4'd02: ALUResult = SrcA - SrcB; // SUB
+
+            4'd04: ALUResult = SrcA | SrcB; // OR
+
+            4'd05: ALUResult = SrcA & SrcB; // AND
+
+            4'd06: ALUResult = SrcA ^ SrcB; // XOR
+
+            4'd07: ALUResult = SrcA << SrcB[4:0]; // SLL
+
+            4'd08: ALUResult = SrcA >> SrcB[4:0]; // SRL
+
+            4'd09: ALUResult = $signed(SrcA) >>> SrcB[4:0]; // SRA
+
+            4'd11: ALUResult = {31'b0, ($signed(SrcA) < $signed(SrcB))}; // SLT
+
+            4'd12: ALUResult = {31'b0, (SrcA < SrcB)}; // SLTU
+
             default: ALUResult = 32'b0;
+
         endcase
     end
 
