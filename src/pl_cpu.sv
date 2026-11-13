@@ -1,18 +1,6 @@
 // =============================================================================
 // pl_cpu.sv
 // Processador RV32I pipelined -- wrapper CPU (Control + Datapath)
-//
-// Instancia:
-//   pl_control  : unidade de controle principal (estagio ID)
-//   pl_alu_ctrl : unidade de controle da ALU (estagio EX)
-//   pl_datapath : datapath de 5 estagios
-//
-// O pl_control decodifica o opcode do estagio ID; os sinais de controle
-// resultantes sao propagados internamente pelo pl_datapath atraves dos
-// registradores de pipeline.
-//
-// O pl_alu_ctrl usa os campos Funct3/Funct7/ALUOp do registrador ID/EX
-// (estagio EX) para determinar a operacao da ALU.
 // =============================================================================
 
 `timescale 1ns / 1ps
@@ -43,10 +31,14 @@ module pl_cpu (
     // -------------------------------------------------------------------------
     // Sinais internos entre modulos
     // -------------------------------------------------------------------------
+
     logic [6:0] opcode;
 
-    logic ALUSrc, MemtoReg, RegWrite, MemRead, MemWrite, Branch;
+    logic ALUSrc, MemtoReg, RegWrite;
+    logic MemRead, MemWrite, Branch;
+
     logic IsLUI, IsAUIPC;
+    logic IsJAL, IsJALR;
 
     logic [1:0] ALUOp;
 
@@ -55,11 +47,14 @@ module pl_cpu (
     logic [1:0] aluop_ex;
     logic [3:0] alu_cc;
 
+
     // -------------------------------------------------------------------------
     // Unidade de controle principal (estagio ID)
     // -------------------------------------------------------------------------
+
     pl_control ctrl (
         .Opcode   (opcode),
+
         .ALUSrc   (ALUSrc),
         .MemtoReg (MemtoReg),
         .RegWrite (RegWrite),
@@ -67,13 +62,18 @@ module pl_cpu (
         .MemWrite (MemWrite),
         .Branch   (Branch),
         .ALUOp    (ALUOp),
+
         .IsLUI    (IsLUI),
-        .IsAUIPC  (IsAUIPC)
+        .IsAUIPC  (IsAUIPC),
+        .IsJAL    (IsJAL),
+        .IsJALR   (IsJALR)
     );
 
+
     // -------------------------------------------------------------------------
-    // Unidade de controle da ALU (estagio EX -- usa campos do reg ID/EX)
+    // Unidade de controle da ALU (estagio EX)
     // -------------------------------------------------------------------------
+
     pl_alu_ctrl alu_ctrl (
         .ALUOp     (aluop_ex),
         .Funct7    (funct7_ex),
@@ -81,9 +81,11 @@ module pl_cpu (
         .Operation (alu_cc)
     );
 
+
     // -------------------------------------------------------------------------
     // Datapath
     // -------------------------------------------------------------------------
+
     pl_datapath datapath (
         .clk          (clk),
         .rst_n        (rst_n),
@@ -98,6 +100,8 @@ module pl_cpu (
 
         .IsLUI        (IsLUI),
         .IsAUIPC      (IsAUIPC),
+        .IsJAL        (IsJAL),
+        .IsJALR       (IsJALR),
 
         .ALU_CC       (alu_cc),
 
