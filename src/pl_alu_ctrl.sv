@@ -1,17 +1,6 @@
 // =============================================================================
 // pl_alu_ctrl.sv
-// Unidade de Controle da ALU -- RV32I pipelined (P&H secao 4.4)
-//
-// Entradas (do estagio EX -- registrador ID/EX):
-//   ALUOp[1:0] : codigo do controlador principal
-//     2'b00 : Load/Store  -> forcar ADD
-//     2'b01 : Branch BEQ  -> forcar SUB
-//     2'b10 : R-type      -> decodificar via Funct3/Funct7
-//   Funct7[6:0], Funct3[2:0] : campos da instrucao
-//
-// Saida Operation[3:0] -> pl_alu.sv:
-//   4'd01 ADD  4'd02 SUB  4'd03 XOR  4'd04 OR   4'd05 AND
-//   4'd06 SLL  4'd07 SRL  4'd08 SRA  4'd11 SLT  4'd12 SLTU
+// Unidade de Controle da ALU -- RV32I pipelined
 // =============================================================================
 
 `timescale 1ns / 1ps
@@ -23,50 +12,127 @@ module pl_alu_ctrl (
     output logic [3:0] Operation
 );
 
+    // Codigos de operacao da ALU
+    localparam ALU_ADD  = 4'd1;
+    localparam ALU_SUB  = 4'd2;
+    localparam ALU_OR   = 4'd4;
+    localparam ALU_AND  = 4'd5;
+    localparam ALU_XOR  = 4'd6;
+    localparam ALU_SLL  = 4'd7;
+    localparam ALU_SRL  = 4'd8;
+    localparam ALU_SRA  = 4'd9;
+    localparam ALU_SLT  = 4'd11;
+    localparam ALU_SLTU = 4'd12;
+
     always_comb begin
+
+        Operation = ALU_ADD;
+
         case (ALUOp)
-            2'b00: Operation = 4'd01;   // Load / Store -> ADD
 
-            2'b01: Operation = 4'd02;   // Branch BEQ  -> SUB
-
-            2'b10: begin                // R-type: decodificar Funct
-                case (Funct3)
-                    3'h0: Operation = Funct7[5] ? 4'd02 : 4'd01; // SUB ou ADD
-                    3'h7: Operation = 4'd05;  // AND
-                    3'h6: Operation = 4'd04;  // OR
-
-                // New functions for I-type
-                    3'h4: Operation = 4'd03;  // XOR
-                    3'h1: Operation = 4'd06;  // SLL
-                    3'h5: Operation = Funct7[5] ? 4'd08 : 4'd07; // SRA ou SRL
-                    3'h2: Operation = 4'd11;  // SLT
-                    3'h3: Operation = 4'd12;  // SLTU
-                    default: Operation = 4'd01;
-                endcase
+            // -------------------------------------------------------------
+            // ADD: calculo de endereco
+            // -------------------------------------------------------------
+            2'b00: begin
+                Operation = ALU_ADD;
             end
 
-            2'b11: begin              // I-type aritmetico/logico
+            // -------------------------------------------------------------
+            // SUB: comparacao usada nos branches
+            // -------------------------------------------------------------
+            2'b01: begin
+                Operation = ALU_SUB;
+            end
+
+            // -------------------------------------------------------------
+            // R-type
+            // -------------------------------------------------------------
+            2'b10: begin
+
                 case (Funct3)
 
-                    3'h0: Operation = 4'd01; // ADDI
-                    3'h7: Operation = 4'd05; // ANDI
-                    3'h6: Operation = 4'd04; // ORI
-                    3'h2: Operation = 4'd11; // SLTI
-                    3'h1: Operation = 4'd06; // SLLI
-
-                    3'h5: begin
-                        if (Funct7[5])
-                            Operation = 4'd09; // SRAI
+                    3'b000: begin
+                        if (Funct7 == 7'b0100000)
+                            Operation = ALU_SUB;
                         else
-                            Operation = 4'd08; // SRLI
+                            Operation = ALU_ADD;
                     end
 
-                    default: Operation = 4'd01;
+                    3'b001:
+                        Operation = ALU_SLL;
+
+                    3'b010:
+                        Operation = ALU_SLT;
+
+                    3'b011:
+                        Operation = ALU_SLTU;
+
+                    3'b100:
+                        Operation = ALU_XOR;
+
+                    3'b101: begin
+                        if (Funct7 == 7'b0100000)
+                            Operation = ALU_SRA;
+                        else
+                            Operation = ALU_SRL;
+                    end
+
+                    3'b110:
+                        Operation = ALU_OR;
+
+                    3'b111:
+                        Operation = ALU_AND;
+
+                    default:
+                        Operation = ALU_ADD;
 
                 endcase
             end
 
-            default: Operation = 4'd01;
+            // -------------------------------------------------------------
+            // I-type
+            // -------------------------------------------------------------
+            2'b11: begin
+
+                case (Funct3)
+
+                    3'b000:
+                        Operation = ALU_ADD;  // ADDI
+
+                    3'b001:
+                        Operation = ALU_SLL;  // SLLI
+
+                    3'b010:
+                        Operation = ALU_SLT;  // SLTI
+
+                    3'b011:
+                        Operation = ALU_SLTU; // SLTIU
+
+                    3'b100:
+                        Operation = ALU_XOR;  // XORI
+
+                    3'b101: begin
+                        if (Funct7 == 7'b0100000)
+                            Operation = ALU_SRA; // SRAI
+                        else
+                            Operation = ALU_SRL; // SRLI
+                    end
+
+                    3'b110:
+                        Operation = ALU_OR;   // ORI
+
+                    3'b111:
+                        Operation = ALU_AND;  // ANDI
+
+                    default:
+                        Operation = ALU_ADD;
+
+                endcase
+            end
+
+            default:
+                Operation = ALU_ADD;
+
         endcase
     end
 
