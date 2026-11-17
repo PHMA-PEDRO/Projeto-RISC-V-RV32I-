@@ -551,7 +551,6 @@ def build_dump_code():
 	  Loop back  : beq x0,x0,-32
 	  Loop done  : beq x14,x16,8  (or beq x14,x0,8 for cycle poll-only)
 	"""
-	b = INFRA_BBASE  # byte base for infrastructure lw offsets (0x200)
 	code = []
 
 	# Part 2: save x1-x8 to dmem word addr 0x72-0x79 (byte 0x1C8-0x1E4)
@@ -559,14 +558,15 @@ def build_dump_code():
 		code.append((f"sw x{i},{SAVES_BBASE + (i-1)*4}(x0)",
 		             f"x{i} -> dmem[0x{SAVES_WBASE + i - 1:02X}]"))
 
-	# Part 3: load infrastructure constants
-	code.append((f"lw x15,{b+0}(x0)",  "x15 = 0x410  UART TX/status"))
-	code.append((f"lw x17,{b+4}(x0)",  "x17 = 0x200  tx_busy mask"))
-	code.append((f"lw x18,{b+8}(x0)",  "x18 = 4      step"))
-	code.append((f"lw x20,{b+12}(x0)", "x20 = 0x400  MMIO base"))
-	code.append((f"lw x21,{b+16}(x0)", "x21 = 0x1FF  LEDG all-on"))
-	code.append((f"lw x23,{b+20}(x0)", "x23 = 0x80   saves start"))
-	code.append((f"lw x24,{b+24}(x0)", "x24 = 0xFC   saves end"))
+	# Part 3: build infrastructure constants with addi
+	# (dmem is synthesized as plain registers, so data.mif is not loaded on the FPGA)
+	code.append(("addi x15,x0,1040", "x15 = 0x410  UART TX/status"))
+	code.append(("addi x17,x0,512",  "x17 = 0x200  tx_busy mask"))
+	code.append(("addi x18,x0,4",    "x18 = 4      step"))
+	code.append(("addi x20,x0,1024", "x20 = 0x400  MMIO base"))
+	code.append(("addi x21,x0,511",  "x21 = 0x1FF  LEDG all-on"))
+	code.append((f"addi x23,x0,{SAVES_BBASE}", f"x23 = 0x{SAVES_BBASE:03X}  saves start"))
+	code.append((f"addi x24,x0,{SAVES_BEND}",  f"x24 = 0x{SAVES_BEND:03X}  saves end"))
 
 	# Part 4: send cycle count (MMIO 0x414)
 	code.append(("add x22,x15,x18",  "x22 = 0x414  CYCLE MMIO"))
