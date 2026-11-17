@@ -47,6 +47,7 @@ INFRA_WBASE = 0x80
 INFRA_BBASE = INFRA_WBASE * 4   # = 0x200 = 512  (fits in 12-bit signed imm)
 
 NOP_WORD = "00000013"  # addi x0, x0, 0
+HALT_WORD = "00000063"  # beq x0, x0, 0
 
 # Register allocation in dump code:
 #   x13=status tmp, x14=ptr, x15=UART addr, x16=ptr end,
@@ -529,8 +530,12 @@ def translate_instruction(instruction):
 
 			rs1 = bin(int(rs1[1:]))[2:].zfill(5)
 
-			shamt = instruction.split(" ")[1].split(",")[2]
-			shamt = sfill(sbin(shamt)[0:6], 5)
+			shamt = int(instruction.split(" ")[1].split(",")[2])
+
+			if (shamt < 0 or shamt > 31):
+				raise Exception("Shift amount out of range (0-31).")
+
+			shamt = bin(shamt)[2:].zfill(5)
 
 			binary = funct7 + shamt + rs1 + funct3 + rd + opcode
 
@@ -593,7 +598,7 @@ def build_dump_code():
 
 	# Part 6: loop — send dmem[0x000..0x07C]
 	code.append(("add x14,x0,x0",   "x14 = 0     mem start ptr"))
-	code.append(("add x16,x23,x0",  "x16 = 0x80  mem end ptr"))
+	code.append(("addi x16,x0,128", "x16 = 0x80  mem end ptr"))
 	# MEM_LOOP:
 	code.append(("lw x19,0(x14)",   "MEM_LOOP: load mem word"))
 	code.append(("lw x13,0(x15)",   "POLL"))
@@ -663,6 +668,11 @@ def main_dump(src):
 			print(f"Translation failed on line {lineno}: '{instr}'")
 			exit(2)
 		user_encoded.append((f"{int(binary, 2):08X}", instr))
+
+	# A trailing halt would trap the CPU before it reaches the jump to the dump.
+	if user_encoded and user_encoded[-1][0] == HALT_WORD:
+		user_encoded.pop()
+		print("Aviso: 'beq x0,x0,0' final removido (o --dump ja encerra o programa).\n")
 
 	n_user = len(user_encoded)
 	if n_user >= DUMP_START:
