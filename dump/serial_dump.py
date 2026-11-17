@@ -98,6 +98,10 @@ def receive_dump(port: str, baud: int, timeout: float) -> bytes:
 
     ser = serial.Serial(port, baud, timeout=timeout)
     try:
+        # Descarta bytes antigos retidos no adaptador USB-serial (ex.: resto de
+        # um dump anterior); senão o stream começa no meio de uma palavra.
+        ser.reset_input_buffer()
+
         data = bytearray()
         last_reported_word = -1
 
