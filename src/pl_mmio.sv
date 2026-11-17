@@ -22,7 +22,9 @@
 
 `timescale 1ns / 1ps
 
-module pl_mmio (
+module pl_mmio #(
+    parameter int CLK_HZ = 50_000_000   // frequencia real de clk (define o baud da UART)
+) (
     input  logic        clk,
     input  logic        rst_n,
     input  logic        MemWrite,
@@ -52,7 +54,7 @@ module pl_mmio (
     logic       rx_valid;
 
     pl_uart #(
-        .CLK_HZ (50_000_000),
+        .CLK_HZ (CLK_HZ),
         .BAUD   (9_600)
     ) uart_inst (
         .clk      (clk),

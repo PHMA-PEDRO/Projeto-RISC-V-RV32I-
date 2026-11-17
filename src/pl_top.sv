@@ -49,7 +49,9 @@ module pl_top (
     // -------------------------------------------------------------------------
     // CPU pipelined
     // -------------------------------------------------------------------------
-    pl_cpu cpu (
+    pl_cpu #(
+        .CLK_HZ       (10_000_000)  // clock da PLL -> UART a 9600 baud
+    ) cpu (
         .clk          (clk),
         .rst_n        (rst_n),
         .PC           (),           // nao conectado no top-level da placa

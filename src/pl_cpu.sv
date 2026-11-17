@@ -5,7 +5,9 @@
 
 `timescale 1ns / 1ps
 
-module pl_cpu (
+module pl_cpu #(
+    parameter int CLK_HZ = 50_000_000   // frequencia real de clk (baud da UART)
+) (
     input  logic        clk,
     input  logic        rst_n,
 
@@ -86,7 +88,9 @@ module pl_cpu (
     // Datapath
     // -------------------------------------------------------------------------
 
-    pl_datapath datapath (
+    pl_datapath #(
+        .CLK_HZ       (CLK_HZ)
+    ) datapath (
         .clk          (clk),
         .rst_n        (rst_n),
 

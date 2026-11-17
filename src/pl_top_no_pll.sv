@@ -11,13 +11,7 @@
 //   - Sem instância pll_10mhz
 //   - clk = CLOCK_50 (50 MHz)
 //   - rst_n = KEY[0] diretamente (sem aguardar pll_locked)
-//   - CLK_FREQ_HZ = 50_000_000 propagado para pl_mmio via pl_cpu
-//
-// ATENÇÃO — UART a 50 MHz:
-//   pl_mmio instancia pl_uart com CLK_HZ = 10_000_000 (hardcoded).
-//   A 50 MHz o divisor de baud estará errado por fator 5, portanto a
-//   comunicação serial NÃO funcionará corretamente nesta variante.
-//   Para corrigir, altere pl_mmio.sv: .CLK_HZ(50_000_000)
+//   - CLK_HZ = 50_000_000 propagado para pl_mmio via pl_cpu (UART a 9600 baud)
 //
 // Pinagem (DE2-115) — idêntica a pl_top.sv:
 //   CLOCK_50  : clock de 50 MHz da placa
@@ -26,7 +20,7 @@
 //   SW[17:0]  : chaves deslizantes — MMIO 0x400
 //   LEDR[17:0]: LEDs vermelhos     — MMIO 0x408
 //   LEDG[8:0] : LEDs verdes        — MMIO 0x40C
-//   UART_TXD  : transmissão RS-232 (baud incorreto sem ajuste de CLK_HZ)
+//   UART_TXD  : transmissão RS-232 (9600 8N1)
 //   UART_RXD  : recepção  RS-232
 // =============================================================================
 
@@ -50,7 +44,9 @@ module pl_top_no_pll (
     // -------------------------------------------------------------------------
     // CPU pipelined — clock direto de 50 MHz
     // -------------------------------------------------------------------------
-    pl_cpu cpu (
+    pl_cpu #(
+        .CLK_HZ       (50_000_000)  // CLOCK_50 direto -> UART a 9600 baud
+    ) cpu (
         .clk          (CLOCK_50),
         .rst_n        (rst_n),
         .PC           (),
